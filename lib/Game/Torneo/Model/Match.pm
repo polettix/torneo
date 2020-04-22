@@ -51,7 +51,7 @@ sub record_scores ($self, $judge, $scores) {
 
    my %input_score_for = $scores->%*;
    my %saved_score_for;
-   for my $participant ($self->participants) {
+   for my $participant ($self->participants->@*) {
       $saved_score_for{$participant->id} =
         exists $input_score_for{$participant->id}
         ? delete $input_score_for{$participant->id}
@@ -84,7 +84,7 @@ sub scores ($self) {
    } ## end JUDGE: while (my ($judge, $scores...))
    my @alternatives = reverse sort { $a->{n} <=> $b->{n} } values %tally;
 
-   my $total_judges = scalar $self->judges;
+   my $total_judges = scalar $self->judges->@*;
    my $quorum       = int($total_judges / 2) + 1;
    my %retval       = (
       quorum => $quorum,

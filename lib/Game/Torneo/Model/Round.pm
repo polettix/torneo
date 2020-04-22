@@ -26,7 +26,7 @@ sub scores ($self) {
       my $ms = $match->scores;
       my $status = $ms->{status};
       next unless {settled => 1, provisional => 1}->{$status};
-      while (my ($id, $score) = each $ms->{best}->%*) {
+      while (my ($id, $score) = each $ms->{best}{scores}->%*) {
          ouch "player $id overlap"
             if exists $provisional{$id} && ! $matches_can_overlap;
          $provisional{$id} //= 0;
