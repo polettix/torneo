@@ -43,12 +43,26 @@ sub create (@os) {
    my %opt = @os && ref $os[0] ? $os[0]->%* : @os;
    my $participants = $opt{participants};
    my $n = $opt{players_per_match};
-   my @ps = map {
-      blessed($_) ? $_ : Game::Torneo::Model::Participant->new($_->%*)
-   } $participants->@*;
+   if (! defined $n) {
+      my $np = $participants->@*;
+      if ($np == 42) { $n = 6 }
+      else {
+         $n = int sqrt scalar $np;
+         ouch 400, "unuseable number of participants ($np)"
+            unless $n * $n == $np;
+      }
+   }
+   my @eps = map {
+      my $p = $participants->[$_];
+      blessed($p) ? $p : Game::Torneo::Model::Participant->new(
+         (ref $p ? $p->%* : (data => $p)),
+         id => $_ + 1,
+      )
+   } 0 .. $#$participants;
    my $t = $n == 6 ? sixtets($opt{sixtet}) : tournament_arrangement($n);
-   @ps = _sort_for_premium(\@ps, $t->{premium}) if $opt{premium};
+   my @ps = $opt{premium} ? _sort_for_premium(\@eps, $t->{premium}) : @eps;
    my $judges = $opt{judjes} // [];
+   my $round_id = 0;
    my @rounds = map {
       my $match_id = 0;
       my @matches = map {
@@ -59,10 +73,13 @@ sub create (@os) {
             participants => \@participants,
          );
       } $_->@*;
-      Game::Torneo::Model::Round->new(matches => \@matches);
+      Game::Torneo::Model::Round->new(
+         id => ++$round_id,
+         matches => \@matches
+      );
    } $t->{schedule}->@*;
    return Game::Torneo::Model::Torneo->new(
-      participants => \@ps,
+      participants => \@eps,
       rounds => \@rounds,
    );
 } ## end sub create
@@ -94,20 +111,27 @@ sub sort_round ($round) {
 }
 
 sub tournament_arrangement ($n) {
-   my $pp_lines = PG2($n);
+   my $pp_lines = PG2($n); # start from a Projective Plane
 
+   # get an Affine Plane from it, removing one line and all its points
+   # these points will drive the grouping into rounds, because all other
+   # lines contain exactly one of them and are non-overlapping
    my $removed = shift $pp_lines->@*;
    my %round_id_for;
-   my $round_id = 1;
-   $round_id_for{$_} = $round_id++ for $removed->@*;
+   my $round_id = 0;
+   $round_id_for{$_} = ++$round_id for $removed->@*;
 
-   my %player_id_for;    # remapping
-   my $player_id = 1;    # player identifiers start from 1
-   for my $i (0 .. ($n * $n + $n)) {
+   # removing a line means that identifiers in other lines might not be
+   # properly ordered, re-map them starting from 1
+   my %player_id_for;
+   my $player_id = 0;
+   for my $i (0 .. ($n * $n + $n)) {  # FIXME should I put -1?
       next if $round_id_for{$i};
-      $player_id_for{$i} = $player_id++;
+      $player_id_for{$i} = ++$player_id;
    }
 
+   # now analyze all remaining lines, use the removed identifier to select
+   # the round identifier and ditch it on the way
    my %games_for;        # games grouped by round
    my @games_with_1;
    for my $line ($pp_lines->@*) {
@@ -139,24 +163,6 @@ sub tournament_arrangement ($n) {
       premium  => \@premium,
    };
 } ## end sub tournament_arrangement ($n)
-
-sub print_schedule ($tournament) {
-   my ($n, $schedule, $premium) = $tournament->@{qw< n schedule premium >};
-   my %is_premium = map { $_ => 1 } $premium->@*;
-   my $plen       = length($n * $n) + 1;
-   my $i          = 0;
-   for my $round ($schedule->@*) {
-      say 'round ', ++$i, ':';
-      say "  ($_)"
-        for map {
-         join ', ', map {
-            my $char = $is_premium{$_} ? '*' : ' ';
-            sprintf "%${plen}s", $char . $_;
-         } $_->@*;
-        } $round->@*;
-      say '';
-   } ## end for my $round ($schedule...)
-} ## end sub print_schedule ($tournament)
 
 sub PG2 ($order) {
    my $field = Math::GF->new(order => $order);
@@ -190,23 +196,6 @@ sub PG2 ($order) {
 
    return \@lines;
 } ## end sub PG2 ($order)
-
-sub collect_adversaries ($scheduling) {
-   my %adversaries_for;
-   for my $round ($scheduling->@*) {
-      for my $match ($round->@*) {
-         for my $player_a ($match->@*) {
-            for my $player_b ($match->@*) {
-               next if $player_a == $player_b;    # no auto-matching!
-               if ($adversaries_for{$player_a}{$player_b}++) {
-                  say "$player_a plays twice with $player_b";
-               }
-            } ## end for my $player_b ($match...)
-         } ## end for my $player_a ($match...)
-      } ## end for my $match ($round->...)
-   } ## end for my $round ($scheduling...)
-   return \%adversaries_for;
-} ## end sub collect_adversaries ($scheduling)
 
 sub sixtets_data {
    my @base_schedule = (

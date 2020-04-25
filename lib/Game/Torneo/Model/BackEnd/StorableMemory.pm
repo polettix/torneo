@@ -32,6 +32,10 @@ sub update ($s, $t) { $s->repo->[$t->id] = $t; return }
 
 sub delete ($s, $t) { $s->repo->[$t->id] = undef }
 
-sub search ($self, %opts) { return 0 .. scalar($self->repo->@*) - 1 }
+sub search ($self, %opts) {
+   my $repo = $self->repo;
+   return unless $repo->@*;
+   return 0 .. $#$repo;
+}
 
 1;

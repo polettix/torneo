@@ -8,6 +8,8 @@ use Ouch ':trytiny_var';
 use Game::Torneo::Model::Util 'check_arrayref_of';
 use namespace::clean;
 
+has id => (is => 'rw');
+
 has matches => (
    is  => 'rw',
    isa => sub {
@@ -40,6 +42,14 @@ sub scores ($self) {
       settled => \%settled,
       provisional => \%provisional,
    };
+}
+
+sub as_hash ($self) {
+   return {
+      id => $self->id,
+      matches => [map {$_->as_hash} $self->matches->@*],
+      matches_can_overlap => $self->matches_can_overlap,
+   }
 }
 
 1;

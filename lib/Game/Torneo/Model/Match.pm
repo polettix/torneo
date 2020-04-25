@@ -6,6 +6,7 @@ use experimental qw< postderef signatures >;
 no warnings qw< experimental::postderef experimental::signatures >;
 use Ouch ':trytiny_var';
 use Game::Torneo::Model::Util 'check_arrayref_of';
+use Storable 'dclone';
 
 # Handy local functions, not part of the API
 
@@ -40,12 +41,15 @@ around BUILDARGS => sub ($orig, $class, @args) {
    return $class->$orig(\%args);
 };
 
+sub has_judges ($self) { return scalar($self->judges->@*) > 0 }
+
 sub is_judge ($self, $judge) {
    my $jh = $self->_judges;
    return (!scalar keys $jh->%*) || (exists $jh->{$judge});
 }
 
 sub record_scores ($self, $judge, $scores) {
+   $judge //= '';
    ouch 400, "$judge not a judge in match " . $self->id
      unless $self->is_judge($judge);
 
@@ -60,7 +64,9 @@ sub record_scores ($self, $judge, $scores) {
    if (my @intruders = keys %input_score_for) {
       ouch 400, "spurious scores for unexpected (@intruders)";
    }
-   $self->score_from->{$judge} = \%saved_score_for;
+   my $sf = $self->score_from;
+   $sf->%* = () unless $self->has_judges;
+   $sf->{$judge} = \%saved_score_for;
    return $self;
 } ## end sub record_scores
 
@@ -100,5 +106,14 @@ sub scores ($self) {
      if @alternatives && $retval{status} ne 'disputed';
    return \%retval;
 } ## end sub scores ($self)
+
+sub as_hash ($self) {
+   return {
+      id => $self->id,
+      participants => [map {$_->id} $self->participants->@*],
+      judges => [map {$_->id} $self->judges->@*],
+      score_from => dclone($self->score_from),
+   };
+}
 
 1;

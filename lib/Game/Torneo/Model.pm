@@ -21,6 +21,12 @@ sub create ($self, %args) {
    return Game::Torneo::Model::Arrangement::create(%args);
 }
 
+sub create_and_save ($self, %args) {
+   my $torneo = $self->create(%args);
+   $self->save($torneo);
+   return $torneo;
+}
+
 sub delete ($self, $torneo) {
    $self->backend->delete($torneo);
    return $self;
