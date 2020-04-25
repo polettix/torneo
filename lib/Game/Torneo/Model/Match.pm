@@ -19,32 +19,19 @@ sub _scores_are_equal ($h1, $h2) {
 
 use namespace::clean;
 
-with 'Game::Torneo::Model::RoleParticipants';
-has _participants => (is => 'ro');
-
 has id => (is => 'rw');
-
-has judges => (is => 'ro', default => sub {[]});
-has _judges => (is => 'ro');
+has participants => (is  => 'ro');
+has judges => (is => 'ro', default => sub {return {}});
 
 has score_from => (
    is      => 'rw',
    default => sub { return {} },
 );
 
-around BUILDARGS => sub ($orig, $class, @args) {
-   my %args = (@args > 0 && ref $args[0]) ? $args[0]->%* : @_;
-   for my $key (qw< participants judges >) {
-      my $aref = $args{$key} //= [];
-      $args{'_' . $key} = {map { $_->id => 1 } $aref->@*};
-   }
-   return $class->$orig(\%args);
-};
-
-sub has_judges ($self) { return scalar($self->judges->@*) > 0 }
+sub has_judges ($self) { return scalar(keys $self->judges->%*) > 0 }
 
 sub is_judge ($self, $judge) {
-   my $jh = $self->_judges;
+   my $jh = $self->judges;
    return (!scalar keys $jh->%*) || (exists $jh->{$judge});
 }
 
@@ -53,16 +40,12 @@ sub record_scores ($self, $judge, $scores) {
    ouch 400, "$judge not a judge in match " . $self->id
      unless $self->is_judge($judge);
 
-   my %input_score_for = $scores->%*;
-   my %saved_score_for;
-   for my $participant ($self->participants->@*) {
-      $saved_score_for{$participant->id} =
-        exists $input_score_for{$participant->id}
-        ? delete $input_score_for{$participant->id}
-        : 0;
-   } ## end for my $participant ($self...)
-   if (my @intruders = keys %input_score_for) {
-      ouch 400, "spurious scores for unexpected (@intruders)";
+   my $participants = $self->participants;
+   my %saved_score_for = map { $_ => 0 } keys $participants->%*;
+   while (my ($id, $score) = each $scores->%*) {
+      ouch 400, "spurious scores for unexpected ($id)"
+         unless exists $participants->{$id};
+      $saved_score_for{$id} = $score;
    }
    my $sf = $self->score_from;
    $sf->%* = () unless $self->has_judges;
@@ -90,7 +73,7 @@ sub scores ($self) {
    } ## end JUDGE: while (my ($judge, $scores...))
    my @alternatives = reverse sort { $a->{n} <=> $b->{n} } values %tally;
 
-   my $total_judges = scalar $self->judges->@*;
+   my $total_judges = scalar keys $self->judges->%*;
    my $quorum       = int($total_judges / 2) + 1;
    my %retval       = (
       quorum => $quorum,
@@ -110,8 +93,8 @@ sub scores ($self) {
 sub as_hash ($self) {
    return {
       id => $self->id,
-      participants => [map {$_->id} $self->participants->@*],
-      judges => [map {$_->id} $self->judges->@*],
+      participants => [keys $self->participants->%*],
+      #      judges => [keys $self->judges->%*],
       score_from => dclone($self->score_from),
    };
 }

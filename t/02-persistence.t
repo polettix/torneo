@@ -6,15 +6,15 @@ use Game::Torneo::Model ();
 use Path::Tiny 'path';
 
 my @players = (
-   {id => 1, is_premium => 0, data => 'Ada'},
-   {id => 2, is_premium => 1, data => 'Biagio'},
-   {id => 3, is_premium => 1, data => 'Carla'},
-   {id => 4, is_premium => 0, data => 'Davide'},
-   {id => 5, is_premium => 0, data => 'Emma'},
-   {id => 6, is_premium => 1, data => 'Fulvio'},
-   {id => 7, is_premium => 0, data => 'Giada'},
-   {id => 8, is_premium => 1, data => 'Ivo'},
-   {id => 9, is_premium => 1, data => 'Laura'},
+   {is_premium => 0, id => 'Ada'},
+   {is_premium => 1, id => 'Biagio'},
+   {is_premium => 1, id => 'Carla'},
+   {is_premium => 0, id => 'Davide'},
+   {is_premium => 0, id => 'Emma'},
+   {is_premium => 1, id => 'Fulvio'},
+   {is_premium => 0, id => 'Giada'},
+   {is_premium => 1, id => 'Ivo'},
+   {is_premium => 1, id => 'Laura'},
 );
 
 my $repo = path(__FILE__ . '.repo');
@@ -58,7 +58,10 @@ diag 'Generated id: ' . $torneo->id;
 
 is scalar($torneo->rounds->@*), 4, 'number of rounds';
 is scalar($torneo->rounds->[0]->matches->@*), 3, 'matches in round';
-is scalar($torneo->rounds->[0]->matches->[0]->participants->@*), 3,
+is scalar(keys $torneo->rounds->[0]->matches->[0]->participants->%*), 3,
   'participants in match';
+
+$torneo->id(9);
+$model->save($torneo);
 
 done_testing();

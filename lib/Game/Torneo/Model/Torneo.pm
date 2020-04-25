@@ -5,8 +5,9 @@ use strictures 2;
 use experimental qw< postderef signatures >;
 no warnings qw< experimental::postderef experimental::signatures >;
 use Ouch ':trytiny_var';
-use Game::Torneo::Model::Util qw< check_arrayref_of uuid >;
+use Game::Torneo::Model::Util qw< args check_arrayref_of uuid >;
 use Game::Torneo::Model::Score;
+use Storable 'dclone';
 
 sub _add_scores ($h1, $h2) {
    while (my ($id, $score) = each $h2->%*) {
@@ -16,23 +17,26 @@ sub _add_scores ($h1, $h2) {
    return $h1;
 } ## end sub _add_scores
 
-sub _hash_to_scores ($ps, $h) {
+sub _hash_to_scores ($h) {
    return [
       reverse sort { $a->value <=> $b->value }
-      map {
+        map {
          Game::Torneo::Model::Score->new(
-            participant => $ps->[$_ - 1],
+            participant => $_,
             value       => $h->{$_}
            )
-      } keys $h->%*
+        } keys $h->%*
    ];
-} ## end sub _hash_to_score ($h)
+} ## end sub _hash_to_scores ($h)
 
-sub _scores_to_plainarray ($as) { return [ map { $_->as_hash } $as->@* ] }
+sub _scores_to_plainarray ($as) {
+   return [map { $_->as_hash } $as->@*];
+}
 
 use namespace::clean;
 
-with 'Game::Torneo::Model::RoleParticipants';
+has _participants =>
+  (is => 'ro', init_arg => 'participants', required => 1);
 
 has id => (is => 'rw', default => undef);
 
@@ -46,6 +50,14 @@ has rounds => (
    },
 );
 
+sub participants_map ($self) { return $self->_participants->%* }
+
+sub participant_for ($self, $id) {
+   my $ps = $self->_participants;
+   ouch 404, "participant $id not found" unless exists $ps->{$id};
+   return $ps->{$id};
+}
+
 sub scores ($self) {
    my (%settled, %provisional);
    for my $round ($self->rounds->@*) {
@@ -54,30 +66,30 @@ sub scores ($self) {
       _add_scores(\%provisional, $rs->{provisional});
    }
    my %check = (%settled, %provisional);    # grab all of them!
-   my $ps = $self->participants;
-   for my $participant ($ps->@*) {
-      my $id = $participant->id;
+   for my $id (keys $self->_participants->%*) {
       $provisional{$id} //= 0;
       $settled{$id}     //= 0;
       delete $check{$id};
-   } ## end for my $participant ($self...)
+   }
    ouch 400, "unexpected players in torneo (@{[keys %check]})"
      if scalar keys %check;
    return {
-      settled     => _hash_to_scores($ps, \%settled),
-      provisional => _hash_to_scores($ps, \%provisional),
+      settled     => _hash_to_scores(\%settled),
+      provisional => _hash_to_scores(\%provisional),
    };
 } ## end sub scores ($self)
 
 sub as_hash ($self) {
    my $scores = $self->scores;
    $_ = _scores_to_plainarray($_) for values $scores->%*;
+   my $psh = $self->_participants;
+   my %ps = map { $_ => $psh->{$_}->as_hash } keys $psh->%*;
    return {
-      id => $self->id,
-      participants => $self->participants_as_array,
-      rounds => [map {$_->as_hash} $self->rounds->@*],
-      scores => $scores,
+      id           => $self->id,
+      participants => \%ps,
+      rounds       => [map { $_->as_hash } $self->rounds->@*],
+      scores       => $scores,
    };
-}
+} ## end sub as_hash ($self)
 
 1;

@@ -9,7 +9,6 @@ use namespace::clean;
 
 has id => (is => 'rw');
 has is_premium => (is => 'rw', default => 0);
-has data => (is => 'rw');
 
 around BUILDARGS => sub ($orig, $class, @args) {
    my %args = @args && ref $args[0] ? $args[0]->%* : @args;
@@ -18,11 +17,9 @@ around BUILDARGS => sub ($orig, $class, @args) {
 };
 
 sub as_hash ($self) {
-   my $data = $self->data;
    return {
       id => $self->id,
       is_premium => $self->is_premium,
-      data => (ref $data ? dclone($data) : $data),
    };
 }
 

@@ -6,15 +6,15 @@ use Game::Torneo::Model ();
 use Path::Tiny 'path';
 
 my @players = (
-   {id => 1, is_premium => 0, data => 'Ada'},
-   {id => 2, is_premium => 1, data => 'Biagio'},
-   {id => 3, is_premium => 1, data => 'Carla'},
-   {id => 4, is_premium => 0, data => 'Davide'},
-   {id => 5, is_premium => 0, data => 'Emma'},
-   {id => 6, is_premium => 1, data => 'Fulvio'},
-   {id => 7, is_premium => 0, data => 'Giada'},
-   {id => 8, is_premium => 1, data => 'Ivo'},
-   {id => 9, is_premium => 1, data => 'Laura'},
+   {is_premium => 0, id => 'Ada'},
+   {is_premium => 1, id => 'Biagio'},
+   {is_premium => 1, id => 'Carla'},
+   {is_premium => 0, id => 'Davide'},
+   {is_premium => 0, id => 'Emma'},
+   {is_premium => 1, id => 'Fulvio'},
+   {is_premium => 0, id => 'Giada'},
+   {is_premium => 1, id => 'Ivo'},
+   {is_premium => 1, id => 'Laura'},
 );
 
 my ($model, $torneo);
@@ -39,7 +39,7 @@ isa_ok $round1, 'Game::Torneo::Model::Round';
 my $match1 = $round1->matches->[0];
 isa_ok $match1, 'Game::Torneo::Model::Match';
 
-my @participants = map {$_->id} $match1->participants->@*;
+my @participants = keys $match1->participants->%*;
 is scalar(@participants), 3, 'number of participants';
 
 my %score_for;

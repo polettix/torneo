@@ -11,7 +11,7 @@ has value => (is => 'rw', default => 0);
 
 sub as_hash ($self) {
    return {
-      participant => $self->participant->id,
+      participant => $self->participant,
       value => $self->value,
    };
 }

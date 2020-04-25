@@ -10,12 +10,13 @@ use Game::Torneo::Model::Torneo;
 use Game::Torneo::Model::Round;
 use Game::Torneo::Model::Match;
 use Game::Torneo::Model::Participant;
+use Game::Torneo::Model::Util 'args';
 
 use Exporter 'import';
 our @EXPORT_OK = qw< create >;
 
 sub _sort_for_premium ($ps, $premium) {
-   my @ps = $ps->@*;
+   my @ps    = $ps->@*;
    my @newps = (undef) x scalar @ps;
 
    # first sweep - cover needed premium slots
@@ -24,65 +25,80 @@ sub _sort_for_premium ($ps, $premium) {
    while (@premium && @ps) {
       my $p = shift @ps;
       if ($p->is_premium) {
-         my $i = shift(@premium) - 1; # off-by-one correction
+         my $i = shift(@premium) - 1;    # off-by-one correction
          $newps[$i] = $p;
       }
       else {
          push @later, $p;
       }
-   }
+   } ## end while (@premium && @ps)
 
    ouch 400, 'not enough premium participants'
-      if scalar @premium; # could not cover them all!
+     if scalar @premium;                 # could not cover them all!
 
-   push @ps, @later; # put unallocated participants back together
+   push @ps, @later;    # put unallocated participants back together
    return map { defined $_ ? $_ : shift @ps } @newps;
-}
+} ## end sub _sort_for_premium
 
-sub create (@os) {
-   my %opt = @os && ref $os[0] ? $os[0]->%* : @os;
-   my $participants = $opt{participants};
-   my $n = $opt{players_per_match};
-   if (! defined $n) {
-      my $np = $participants->@*;
-      if ($np == 42) { $n = 6 }
-      else {
-         $n = int sqrt scalar $np;
-         ouch 400, "unuseable number of participants ($np)"
-            unless $n * $n == $np;
-      }
-   }
-   my @eps = map {
-      my $p = $participants->[$_];
-      blessed($p) ? $p : Game::Torneo::Model::Participant->new(
-         (ref $p ? $p->%* : (data => $p)),
-         id => $_ + 1,
-      )
-   } 0 .. $#$participants;
-   my $t = $n == 6 ? sixtets($opt{sixtet}) : tournament_arrangement($n);
-   my @ps = $opt{premium} ? _sort_for_premium(\@eps, $t->{premium}) : @eps;
-   my $judges = $opt{judjes} // [];
+sub _participants_array_to_hash_by_id ($aref) {
+   return {
+      map {
+         my %args = ref $_ ? $_->%* : (id => $_);
+         my $p = Game::Torneo::Model::Participant->new(%args);
+         defined(my $id = $p->id)
+            or ouch 400, 'missing identifier for participant';
+         ($id => $p);
+      } ($aref // [])->@*
+   };
+} ## end sub _participants_array_to_hash_by_id ($aref)
+
+sub _get_n ($n, $participants) {
+   return $n if defined $n;
+   my $np = $participants->@*;
+   return 6 if $np == 42;
+   $n = int sqrt scalar $np;
+   return $n if $n * $n == $np;    # it's a square
+   ouch 400, "unuseable number of participants ($np)";
+} ## end sub _get_n
+
+sub create (@args) {
+   my $args = args(@args);
+
+   my $n = _get_n($args->@{qw< players_per_match participants >});
+   my $t = $n == 6 ? sixtets($args->{sixtet}) : tournament_arrangement($n);
+
+   my $judges = _participants_array_to_hash_by_id($args->{judges});
+
+   my $eps = _participants_array_to_hash_by_id($args->{participants});
+   my @ps  = values $eps->%*;
+   @ps = _sort_for_premium(\@ps, $t->{premium}) if $args->{premium};
+
    my $round_id = 0;
-   my @rounds = map {
-      my $match_id = 0;
-      my @matches = map {
-         my @participants = map { $ps[$_-1] } $_->@*;
+   my @rounds   = map {
+      my $round_schedule = $_;
+      my $match_id       = 0;
+      my @matches        = map {
+         my $match_schedule = $_;
+         my %participants   = map {
+            my $p = $ps[$_ - 1];
+            $p->id => $p;
+         } $match_schedule->@*;
          Game::Torneo::Model::Match->new(
-            id => ++$match_id,
-            judges => $judges,
-            participants => \@participants,
+            id           => ++$match_id,
+            judges       => $judges,
+            participants => \%participants,
          );
-      } $_->@*;
+      } $round_schedule->@*;
       Game::Torneo::Model::Round->new(
-         id => ++$round_id,
+         id      => ++$round_id,
          matches => \@matches
       );
    } $t->{schedule}->@*;
    return Game::Torneo::Model::Torneo->new(
-      participants => \@eps,
-      rounds => \@rounds,
+      participants => $eps,
+      rounds       => \@rounds,
    );
-} ## end sub create
+} ## end sub create (@args)
 
 sub sixtets ($option) {
    $option //= 'base';
@@ -111,7 +127,7 @@ sub sort_round ($round) {
 }
 
 sub tournament_arrangement ($n) {
-   my $pp_lines = PG2($n); # start from a Projective Plane
+   my $pp_lines = PG2($n);    # start from a Projective Plane
 
    # get an Affine Plane from it, removing one line and all its points
    # these points will drive the grouping into rounds, because all other
@@ -125,14 +141,14 @@ sub tournament_arrangement ($n) {
    # properly ordered, re-map them starting from 1
    my %player_id_for;
    my $player_id = 0;
-   for my $i (0 .. ($n * $n + $n)) {  # FIXME should I put -1?
+   for my $i (0 .. ($n * $n + $n)) {    # FIXME should I put -1?
       next if $round_id_for{$i};
       $player_id_for{$i} = ++$player_id;
    }
 
    # now analyze all remaining lines, use the removed identifier to select
    # the round identifier and ditch it on the way
-   my %games_for;        # games grouped by round
+   my %games_for;    # games grouped by round
    my @games_with_1;
    for my $line ($pp_lines->@*) {
       my $round;

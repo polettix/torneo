@@ -34,7 +34,9 @@ sub create ($self, $torneo) {
 }
 
 sub retrieve ($self, $id) {
-   my $torneo = Storable::retrieve($self->_filename_from_id($id));
+   my $filename = $self->_filename_from_id($id);
+   ouch 404, 'Not Found' unless -e $filename;
+   my $torneo = Storable::retrieve($filename);
    $torneo->id($id);
    return $torneo;
 }
