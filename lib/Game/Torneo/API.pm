@@ -31,10 +31,13 @@ sub startup ($self) {
    $r->delete('/torneos/:etid')->to('torneo#delete');
 
    $r->get('/torneos/:tid/rounds/:rid')->to('torneo#retrieve_round');
+
    $r->get('/torneos/:tid/rounds/:rid/matches/:mid')
      ->to('torneo#retrieve_match');
    $r->put('/torneos/:tid/rounds/:rid/matches/:emid/scores')
      ->to('torneo#record_match_outcome');
+   $r->delete('/torneos/:tid/rounds/:rid/matches/:emid/scores')
+     ->to('torneo#clear_match_outcome');
 
    $self->hook(
       around_dispatch => sub ($next, $c) {

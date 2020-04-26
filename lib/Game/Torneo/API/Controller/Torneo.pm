@@ -25,16 +25,16 @@ sub expand_torneo ($self, $t, $secret = '') {
    for my $round ($torneo->{rounds}->@*) {
       my $rid = delete $round->{id};
       my $rurl = $round->{url} = $self->_url($tid, $rid);
-      $round_for{$rurl} = $round;
+      $round_for{$rid} = $round;
       for my $match ($round->{matches}->@*) {
          delete $match->{judges};
          my $sf = delete $match->{score_from};
          $match->{scores} = $sf->{''} if exists $sf->{''};
          my $mid = delete $match->{id};
          my $murl = $match->{url}{read} = $self->_url($tid, $rid, $mid);
-         $match_for{$murl} = $match;
+         $match_for{$rid}{$mid} = $match;
          my $ms = delete $match->{secret};
-         $match->{url}{put_scores} = $self->_url($tid, $rid, "$mid-$ms", 'scores')
+         $match->{url}{scores} = $self->_url($tid, $rid, "$mid-$ms", 'scores')
             if $keep_secrets;
       }
    } ## end for my $round ($torneo->...)
@@ -64,17 +64,32 @@ sub _url ($self, $tid, $rid = undef, $mid = undef, @rest) {
    );
 } ## end sub _url
 
-sub _retrieve ($self, $etid, $rid = undef, $mid = undef) {
+sub _retrieve ($self, $etid, $rid = undef, $emid = undef) {
    my ($tid, $secret) = $etid =~ m{\A (\w+) (?: - (\w+))? \z}mxs
      or ouch 400, "invalid torneo identifier <$etid>";
    my $torneo = $self->model->load($tid) or ouch 404, 'Not Found';
+
    my $expanded = $self->expand_torneo($torneo, $secret);
-   my $retval =
-       !defined $rid ? $expanded->{torneo}
-     : !defined $mid ? $expanded->{round_for}{$self->_url($tid, $rid)}
-     :   $expanded->{match_for}{$self->_url($tid, $rid, $mid)};
-   ouch 404, 'Not Found' unless defined $retval;
-   return $retval;
+   return $expanded->{torneo} unless defined $rid;
+
+   if (! defined $emid) {
+      ouch 404, 'Not Found' unless exists $expanded->{round_for}{$rid};
+      return $expanded->{round_for}{$rid};
+   }
+
+   my ($mid, $msecret) = $emid =~ m{\A (\w+) (?: - (\w+))? \z}mxs
+      or ouch 400, "invalid match identifier <$emid>";
+   ouch 404, 'Not Found'
+      unless exists $expanded->{match_for}{$rid}{$mid};
+
+   # "refresh" expansion if needed
+   my $match = $torneo->rounds->[$rid]->matches->[$mid];
+   $expanded = $self->expand_torneo($torneo, $torneo->secret)
+      if defined($msecret) && $msecret eq $match->secret
+         && !(defined($secret) && $secret eq $torneo->secret);
+
+   # now we can return
+   return $expanded->{match_for}{$rid}{$mid};
 } ## end sub _retrieve
 
 sub retrieve ($self) {
@@ -120,7 +135,7 @@ sub set_status ($self)       { ... }
 sub set_round_status ($self) { ... }
 sub set_match_status ($self) { ... }
 
-sub record_match_outcome ($self) {
+sub _record_match_scores ($self, $scores) {
    my ($tid, $rid, $emid) = map { $self->param($_) } qw< tid rid emid >;
    my ($mid, $secret) = $emid =~ m{\A (\w+) - (\w+) \z}mxs
      or ouch 400, "invalid match identifier for setting scores <$emid>";
@@ -129,10 +144,23 @@ sub record_match_outcome ($self) {
    my $match  = $torneo->rounds->[$rid - 1]->matches->[$mid - 1];
    ouch 403, 'sorry, the provided secret does not match mine'
       unless $secret eq $match->secret;
-   $match->record_scores(undef, $self->req->json);
+   if ($scores) {
+      $match->record_scores(undef, $scores);
+   }
+   else {
+      $match->clear_scores(undef);
+   }
    $model->save($torneo);
    my $etid = $tid . '-' . $torneo->secret;
    return $self->render(json => $self->_retrieve($etid, $rid, $mid));
+}
+
+sub record_match_outcome ($self) {
+   $self->_record_match_scores($self->req->json);
 } ## end sub record_match_outcome ($self)
+
+sub clear_match_outcome ($self) {
+   $self->_record_match_scores(undef);
+}
 
 1;

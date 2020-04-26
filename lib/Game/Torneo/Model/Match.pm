@@ -54,6 +54,20 @@ sub record_scores ($self, $judge, $scores) {
    return $self;
 } ## end sub record_scores
 
+sub clear_scores ($self, $judge) {
+   $judge //= '';
+   ouch 400, "$judge not a judge in match " . $self->id
+     unless $self->is_judge($judge);
+   my $sf = $self->score_from;
+   if ($self->has_judges) {
+      delete $sf->{$judge};
+   }
+   else {
+      $sf->%* = ();
+   }
+   return $self;
+}
+
 sub scores ($self) {
    my %tally;
 

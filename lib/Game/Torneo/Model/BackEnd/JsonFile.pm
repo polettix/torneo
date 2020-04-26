@@ -48,7 +48,9 @@ sub update ($self, $torneo) {
    my $filename = $self->_filename_from_id($torneo->id);
    my $hash = $torneo->as_hash;
    delete $hash->{scores};
-   $filename->spew_utf8(encode_json($hash));
+   my $tmp = path($filename . _new_id());
+   $tmp->spew_utf8(encode_json($hash)); # poor man's anti-garbling
+   $tmp->move($filename);
    return $self;
 }
 
