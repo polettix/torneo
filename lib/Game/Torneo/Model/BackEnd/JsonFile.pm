@@ -52,7 +52,10 @@ sub update ($self, $torneo) {
    return $self;
 }
 
-sub delete ($s, $t) { $s->_filename_from_id($t->id)->remove }
+sub delete ($s, $t) {
+   my $filename = $s->_filename_from_id($t->id);
+   $filename->move($filename . '.archived');
+}
 
 sub search ($self, %opts) {
    my $repo = path($self->repo);

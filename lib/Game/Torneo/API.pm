@@ -26,11 +26,14 @@ sub startup ($self) {
    my $r = $self->routes;
    $r->get('/torneos')->to('torneo#list');
    $r->post('/torneos')->to('torneo#create');
+
    $r->get('/torneos/:tid')->to('torneo#retrieve');
+   $r->delete('/torneos/:etid')->to('torneo#delete');
+
    $r->get('/torneos/:tid/rounds/:rid')->to('torneo#retrieve_round');
    $r->get('/torneos/:tid/rounds/:rid/matches/:mid')
      ->to('torneo#retrieve_match');
-   $r->put('/torneos/:tid/rounds/:rid/matches/:mid/scores')
+   $r->put('/torneos/:tid/rounds/:rid/matches/:emid/scores')
      ->to('torneo#record_match_outcome');
 
    $self->hook(

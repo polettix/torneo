@@ -98,12 +98,30 @@ sub create ($self) {
    return $self->render(json => $as_hash);
 }
 
+sub delete ($self) {
+   my $etid = $self->param('etid');
+   my ($tid, $secret) = $etid =~ m{\A (\w+) - (\w+) \z}mxs
+     or ouch 400, "invalid torneo identifier for deletion <$etid>";
+   my $model = $self->model;
+   my $torneo;
+   try {
+      $torneo = $model->load($tid);
+      ouch 403, 'sorry, the provided secret deos not match mine'
+         unless $secret eq $torneo->secret;
+      $model->delete($torneo);
+   }
+   catch {
+      die $_ unless kiss 404; # ignore "Not Found" :)
+   };
+   return $self->render(status => 204, data => '');
+}
+
 sub set_status ($self)       { ... }
 sub set_round_status ($self) { ... }
 sub set_match_status ($self) { ... }
 
 sub record_match_outcome ($self) {
-   my ($tid, $rid, $emid) = map { $self->param($_) } qw< tid rid mid >;
+   my ($tid, $rid, $emid) = map { $self->param($_) } qw< tid rid emid >;
    my ($mid, $secret) = $emid =~ m{\A (\w+) - (\w+) \z}mxs
      or ouch 400, "invalid match identifier for setting scores <$emid>";
    my $model  = $self->model;
