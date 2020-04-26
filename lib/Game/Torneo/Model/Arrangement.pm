@@ -79,14 +79,10 @@ sub create (@args) {
       my $match_id       = 0;
       my @matches        = map {
          my $match_schedule = $_;
-         my %participants   = map {
-            my $p = $ps[$_ - 1];
-            $p->id => $p;
-         } $match_schedule->@*;
+         my @participants = map {$ps[$_ - 1]->id} $match_schedule->@*;
          Game::Torneo::Model::Match->new(
             id           => ++$match_id,
-            judges       => $judges,
-            participants => \%participants,
+            participants => \@participants,
          );
       } $round_schedule->@*;
       Game::Torneo::Model::Round->new(
@@ -95,7 +91,8 @@ sub create (@args) {
       );
    } $t->{schedule}->@*;
    return Game::Torneo::Model::Torneo->new(
-      participants => $eps,
+      participants => \@ps,
+      judges       => $judges,
       rounds       => \@rounds,
    );
 } ## end sub create (@args)

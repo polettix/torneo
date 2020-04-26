@@ -39,7 +39,7 @@ isa_ok $round1, 'Game::Torneo::Model::Round';
 my $match1 = $round1->matches->[0];
 isa_ok $match1, 'Game::Torneo::Model::Match';
 
-my @participants = keys $match1->participants->%*;
+my @participants = $match1->participants->@*;
 is scalar(@participants), 3, 'number of participants';
 
 my %score_for;

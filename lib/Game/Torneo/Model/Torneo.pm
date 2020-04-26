@@ -6,7 +6,11 @@ use experimental qw< postderef signatures >;
 no warnings qw< experimental::postderef experimental::signatures >;
 use Ouch ':trytiny_var';
 use Game::Torneo::Model::Util qw< args check_arrayref_of uuid >;
+use Game::Torneo::Model::Participant;
+use Game::Torneo::Model::Round;
 use Game::Torneo::Model::Score;
+use Game::Torneo::Model::Util 'args';
+use Scalar::Util 'blessed';
 use Storable 'dclone';
 
 sub _add_scores ($h1, $h2) {
@@ -35,8 +39,9 @@ sub _scores_to_plainarray ($as) {
 
 use namespace::clean;
 
-has _participants =>
-  (is => 'ro', init_arg => 'participants', required => 1);
+with 'Game::Torneo::Model::RoleSecretHolder';
+
+has _participants => (is => 'ro');
 
 has id => (is => 'rw', default => undef);
 
@@ -49,6 +54,21 @@ has rounds => (
       ouch 500, $e;
    },
 );
+
+around BUILDARGS => sub ($orig, $class, @args) {
+   my $args = args(@args);
+   ouch 400, 'missing required argument participants'
+      unless exists $args->{participants};
+   my $aref = delete $args->{participants};
+   $args->{_participants} = {
+      map {
+         my $p = blessed $_ ? $_
+            : Game::Torneo::Model::Torneo->from_hash($_);
+         ($p->id => $p);
+      } $aref->@*
+   };
+   return $class->$orig($args);
+};
 
 sub participants_map ($self) { return $self->_participants->%* }
 
@@ -89,7 +109,23 @@ sub as_hash ($self) {
       participants => \%ps,
       rounds       => [map { $_->as_hash } $self->rounds->@*],
       scores       => $scores,
+      secret       => $self->secret,
    };
 } ## end sub as_hash ($self)
+
+sub from_hash ($class, $hash) {
+   my %args;
+   $args{participants} = [
+      map {
+         my $p = $hash->{participants}->{$_};
+         Game::Torneo::Model::Participant->new($p->%*, id => $_);
+      } keys $hash->{participants}->%*
+   ];
+   $args{rounds} =
+     [map { Game::Torneo::Model::Round->from_hash($_); }
+        $hash->{rounds}->@*];
+   $args{secret} = $hash->{secret} if exists $hash->{secret};
+   return $class->new(%args);
+} ## end sub create_from_hash
 
 1;

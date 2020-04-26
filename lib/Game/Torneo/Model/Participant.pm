@@ -23,4 +23,6 @@ sub as_hash ($self) {
    };
 }
 
+sub from_hash ($class, $hash) { $class->new($hash->%*) }
+
 1;

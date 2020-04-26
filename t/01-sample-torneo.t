@@ -43,7 +43,7 @@ is $torneo->id, 'whatever', 'updated torneo identifier';
 
 is scalar($torneo->rounds->@*), 4, 'number of rounds';
 is scalar($torneo->rounds->[0]->matches->@*), 3, 'matches in round';
-is scalar(keys $torneo->rounds->[0]->matches->[0]->participants->%*), 3,
+is scalar($torneo->rounds->[0]->matches->[0]->participants->@*), 3,
   'participants in match';
 
 done_testing();

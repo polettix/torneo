@@ -1,4 +1,5 @@
 requires 'Mojolicious';
+requires 'Mojolicious::Plugin::Authentication';
 requires 'IO::Socket::SSL';
 requires 'Moo';
 requires 'Try::Catch';

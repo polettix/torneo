@@ -369,6 +369,16 @@ DISTRIBUTIONS
       List::Util 1.41
       Time::Local 1.2
       perl 5.010001
+  Mojolicious-Plugin-Authentication-1.33
+    pathname: J/JJ/JJATRIA/Mojolicious-Plugin-Authentication-1.33.tar.gz
+    provides:
+      Mojolicious::Plugin::Authentication 1.33
+    requirements:
+      ExtUtils::MakeMaker 0
+      Mojo::Base 0
+      perl 5.010
+      strict 0
+      warnings 0
   Moo-2.004000
     pathname: H/HA/HAARG/Moo-2.004000.tar.gz
     provides:

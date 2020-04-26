@@ -22,4 +22,4 @@ sub participants_as_hash ($self) {
    return {map { $_ => $ps->{$_}->as_hash } keys $ps->%*};
 }
 
-return 1;
+1;

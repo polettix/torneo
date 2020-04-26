@@ -2,9 +2,10 @@ package Game::Torneo::Model::Util;
 use 5.024;
 use experimental qw< postderef signatures >;
 no warnings qw< experimental::postderef experimental::signatures >;
-use Time::HiRes 'time';
+use Time::HiRes qw< sleep time >;
 use Exporter 'import';
 use Scalar::Util 'blessed';
+use Digest::MD5 'md5_hex';
 
 our @EXPORT_OK = qw< args check_arrayref_of check_hashref_of check_isa uuid >;
 
@@ -38,6 +39,11 @@ sub check_hashref_of ($x, $class) {
    return '';
 }
 
-sub uuid ($x = {}) { sprintf '%s-%s-%03d', "$x", time(), rand(1000) }
+sub uuid ($x = {}) {
+   my $prefix = $ENV{GATOR_SECRET_PREFIX} // 'what';
+   my $suffix = $ENV{GATOR_SECRET_SUFFIX} // 'ever';
+   sleep(1e-3);
+   return md5_hex(join '-', $prefix, time(), rand(1e6), $suffix)
+}
 
 1;

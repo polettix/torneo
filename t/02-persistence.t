@@ -25,7 +25,7 @@ my $model;
 lives_ok {
    $model = Game::Torneo::Model->new(
       backend => {
-         class => 'Game::Torneo::Model::BackEnd::StorableFile',
+         class => 'Game::Torneo::Model::BackEnd::JsonFile',
          repo => $repo,
          prefix => 'test-',
       },
@@ -58,7 +58,7 @@ diag 'Generated id: ' . $torneo->id;
 
 is scalar($torneo->rounds->@*), 4, 'number of rounds';
 is scalar($torneo->rounds->[0]->matches->@*), 3, 'matches in round';
-is scalar(keys $torneo->rounds->[0]->matches->[0]->participants->%*), 3,
+is scalar($torneo->rounds->[0]->matches->[0]->participants->@*), 3,
   'participants in match';
 
 $torneo->id(9);
