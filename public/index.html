@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/foundation/6.3.1/css/foundation.min.css">
+   <link rel="stylesheet" href="style.css">
+  <meta charset="utf-8">
+  <title>Torneo</title>
+</head>
+
+  <body>
+    <div class="container" id="app">
+
+         <div class="columns medium-12 text-center">
+            <span class="menu">
+               <button v-on:click="setup_torneo()" class="mybutton">setup new</button>
+            </span>
+            <span class="menu">
+               <input v-model="newtid" placeholder="identifier" class="tid">
+               <button v-on:click="redirect_to_torneo()" class="mybutton">load</button>
+            </span>
+            <span v-if="has_torneo" class="menu">
+               <span v-if="has_full_url()"><a v-bind:href="full_url()">share (write)</a> - </span>
+               <a v-bind:href="public_url()">share (read)</a>
+            </span>
+         </div>
+
+       <div v-if="show_new_torneo">
+         <h3 class="text-center">New Torneo</h3>
+         <div class="row align-left">
+            <div class="columns medium-3">
+               <input v-model="new_torneo.metadata.title" placeholder="Torneo's title here">
+               <select v-model="new_torneo.n" v-on:change="update_n_selection()">
+                  <option>3</option>
+                  <option>4</option>
+                  <option>5</option>
+                  <option>7</option>
+                  <option>8</option>
+                  <option>9</option>
+               </select>
+               <span>Please provide data for {{ new_torneo.n ** 2 }} players.</span>
+               <span>Premium games require {{ new_torneo.n * 2 - 1 }} premium players.</span>
+               <button class="wide" v-on:click="create_torneo()">create</button>
+            </div>
+            <div class="columns medium-3">
+               <table>
+                  <tr>
+                     <th>#</th>
+                     <th>Participant nickname</th>
+                     <th>Premium</th>
+                  </tr>
+                  <tr v-for="(participant, index) in new_torneo.participants">
+                     <td>{{ index + 1 }}</td>
+                     <td><input v-model="participant.id"></td>
+                     <td><input type="checkbox" v-model="participant.premium"></td>
+                  </tr>
+               </table>
+            </div>
+            <div class="columns medium-6"></div>
+         </div>
+       </div>
+       <div v-else-if="show_torneo">
+         <div v-if="has_torneo">
+            <h3 class="text-center">{{ results.metadata.title }}</h3>
+
+            <div class="columns medium-3">
+               <div class="card scores">
+                  <div class="card-divider">Scores</div>
+                  <div class="card-section">
+                     <table>
+                        <tr>
+                           <th>Participant</th>
+                           <th>Score</th>
+                        </tr>
+                        <tr v-for="result in results.scores.settled">
+                           <td>{{ result.participant }}</td>
+                           <td>{{ result.value }}</td>
+                        </tr>
+                     </table>
+                  </div>
+               </div>
+            </div>
+
+            <div class="columns medium-3">
+               <div class="card rounds">
+                  <div class="card-divider">Rounds</div>
+                  <div class="card-section">
+                  <ul>
+                     <li v-for="(r, rid) in results.rounds">
+                        <button v-on:click="set_round(rid)" v-bind:class="{active: is_active(rid) }">Round {{ rid + 1 }}</button>
+                     </li>
+                  </ul>
+                  </div>
+               </div>
+            </div>
+
+            <div class="columns medium-6">
+
+               <div class="columns medium-6" v-for="(match, mid) in results.rounds[round.id].matches">
+                  <div class="card match">
+                     <div class="card-divider">Match {{ mid + 1}}</div>
+                     <table>
+                        <tr>
+                           <th>Participant</th>
+                           <th>Score</th>
+                        </tr>
+                        <tr v-for="participant in match.participants">
+                           <td>{{ participant }}</td>
+                           <td v-if="'scores' in match.url">
+                              <input v-model="match.scores[participant]">
+                           <td v-else>
+                              {{ match.scores[participant] }}
+                           </td>
+                        </tr>
+                        <tr v-if="'scores' in match.url">
+                           <td colspan="2">
+                              <button class="wide" v-on:click="save_scores(match)">save</button>
+                           </td>
+                        </tr>
+                     </table>
+                  </div>
+               </div>
+
+            </div>
+
+         </div>
+
+      </div>
+
+
+      
+    </div>
+
+    <script src="https://unpkg.com/vue"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <script src="vue-app.js"></script>
+  </body>
+</html>

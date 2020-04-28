@@ -14,12 +14,13 @@ sub expand_torneo ($self, $t, $secret = '') {
    my $app    = $self->app;
    my $torneo = $t->as_hash;
 
-   my $tid = delete $torneo->{id};
+   my $tid = $torneo->{id};
    $torneo->{url}{read} = $self->_url($tid);
 
    my $ts  = delete $torneo->{secret};
    my $keep_secrets = defined $secret && $secret eq $ts;
    $torneo->{url}{write} = $self->_url("$tid-$ts") if $keep_secrets;
+   $torneo->{id} .= '-' . $secret if $keep_secrets;
 
    my (%round_for, %match_for);
    for my $round ($torneo->{rounds}->@*) {
@@ -29,7 +30,14 @@ sub expand_torneo ($self, $t, $secret = '') {
       for my $match ($round->{matches}->@*) {
          delete $match->{judges};
          my $sf = delete $match->{score_from};
-         $match->{scores} = $sf->{''} if exists $sf->{''};
+         if (exists $sf->{''}) {
+            $match->{scores} = $sf->{''};
+         }
+         else {
+            $match->{scores} = {
+               map { $_ => 0 } $match->{participants}->@*
+            };
+         }
          my $mid = delete $match->{id};
          my $murl = $match->{url}{read} = $self->_url($tid, $rid, $mid);
          $match_for{$rid}{$mid} = $match;
@@ -83,7 +91,7 @@ sub _retrieve ($self, $etid, $rid = undef, $emid = undef) {
       unless exists $expanded->{match_for}{$rid}{$mid};
 
    # "refresh" expansion if needed
-   my $match = $torneo->rounds->[$rid]->matches->[$mid];
+   my $match = $torneo->round_for($rid)->match_for($mid);
    $expanded = $self->expand_torneo($torneo, $torneo->secret)
       if defined($msecret) && $msecret eq $match->secret
          && !(defined($secret) && $secret eq $torneo->secret);

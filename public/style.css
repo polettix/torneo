@@ -1,0 +1,57 @@
+span.menu {
+   border-left: 1px solid gray;
+   border-right: 1px solid gray;
+   margin: 0;
+   padding: 0 1em;
+}
+input.tid {
+   width: 23em;
+   font-family: monospace;
+}
+div.card div.card-divider {
+   text-align: center;
+   font-weight: bold;
+}
+
+div.scores ul {
+   list-style-type: none;
+}
+
+div.rounds {
+   text-align: center;
+}
+div.rounds div.card-section {
+   padding: 0.5em;
+   margin: 0;
+}
+div.rounds ul {
+   list-style: none;
+   padding-left: 0;
+   margin-left: 0;
+}
+button.mybutton, button.wide, div.rounds ul li button {
+   border: 1px solid gray;
+   padding: 0.3em 0.3em;
+   margin: 0.3em;
+   border-radius: 3px;
+   cursor: pointer;
+}
+button.wide, div.rounds ul li button {
+   width: 90%;
+}
+
+div.rounds ul li button.active {
+   background-color: blue;
+   font-weight: bold;
+   color: white;
+}
+
+div.rounds ul li button:hover {
+   background-color: orange;
+   font-weight: bold;
+   color: white;
+}
+
+div.match ul {
+   list-style-type: none;
+}

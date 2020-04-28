@@ -19,7 +19,7 @@ sub _scores_are_equal ($h1, $h2) {
 
 use namespace::clean;
 
-with 'Game::Torneo::Model::RoleSecretHolder';
+with 'Game::Torneo::Model::RoleMetaHolder';
 has id           => (is => 'rw');
 has participants => (is => 'ro');
 has judges       => (is => 'ro', default => sub { return [] });
@@ -108,6 +108,7 @@ sub scores ($self) {
 sub as_hash ($self) {
    return {
       id           => $self->id,
+      metadata     => dclone($self->metadata),
       participants => dclone($self->participants),
       judges       => dclone($self->judges),
       score_from   => dclone($self->score_from),
@@ -121,6 +122,7 @@ sub from_hash ($class, $hash) {
    $args{participants} = dclone($hash->{participants});
    $args{score_from} = dclone($hash->{score_from});
    $args{secret} = $hash->{secret} if exists $hash->{secret};
+   $args{metadata} = dclone($hash->{metadata}) if exists $hash->{metadata};
    return $class->new(%args);
 } ## end sub from_hash
 

@@ -45,6 +45,14 @@ sub scores ($self) {
    };
 } ## end sub scores ($self)
 
+sub match_for ($self, $mid) {
+   # inefficient but correct
+   for my $match ($self->matches->@*) {
+      return $match if $match->id eq $mid;
+   }
+   ouch 404, 'Match not found';
+}
+
 sub as_hash ($self) {
    return {
       id                  => $self->id,

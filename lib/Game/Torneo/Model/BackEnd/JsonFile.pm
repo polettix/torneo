@@ -8,8 +8,7 @@ use Ouch ':trytiny_var';
 use JSON::PP qw< encode_json decode_json >;
 use Path::Tiny 'path';
 use Game::Torneo::Model::Torneo;
-
-sub _new_id { sprintf '%s-%03d', time(), rand(1000) }
+use Game::Torneo::Model::Util 'uuid';
 
 use namespace::clean;
 
@@ -31,7 +30,7 @@ has repo => (is => 'ro', default => '.');
 has prefix => (is => 'rw', default => 'torneo-');
 
 sub create ($self, $torneo) {
-   $torneo->id(_new_id());
+   $torneo->id(uuid());
    $self->update($torneo);
 }
 
@@ -48,7 +47,7 @@ sub update ($self, $torneo) {
    my $filename = $self->_filename_from_id($torneo->id);
    my $hash = $torneo->as_hash;
    delete $hash->{scores};
-   my $tmp = path($filename . _new_id());
+   my $tmp = path($filename . uuid());
    $tmp->spew_utf8(encode_json($hash)); # poor man's anti-garbling
    $tmp->move($filename);
    return $self;

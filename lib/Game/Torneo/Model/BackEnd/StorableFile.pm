@@ -7,8 +7,7 @@ no warnings qw< experimental::postderef experimental::signatures >;
 use Ouch ':trytiny_var';
 use Storable ();
 use Path::Tiny 'path';
-
-sub _new_id { sprintf '%s-%03d', time(), rand(1000) }
+use Game::Torneo::Model::Util 'uuid';
 
 use namespace::clean;
 
@@ -29,7 +28,7 @@ has repo => (is => 'ro', default => '.');
 has prefix => (is => 'rw', default => 'torneo-');
 
 sub create ($self, $torneo) {
-   $torneo->id(_new_id());
+   $torneo->id(uuid());
    $self->update($torneo);
 }
 

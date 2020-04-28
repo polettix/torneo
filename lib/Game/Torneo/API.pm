@@ -13,7 +13,7 @@ has model => sub {
    return Game::Torneo::Model->new(
       backend => {
          class => 'Game::Torneo::Model::BackEnd::JsonFile',
-         repo  => '.',
+         repo  => 'tmp',
       }
    );
 };

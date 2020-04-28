@@ -91,6 +91,7 @@ sub create (@args) {
       );
    } $t->{schedule}->@*;
    return Game::Torneo::Model::Torneo->new(
+      metadata     => ($args->{metadata} // {}),
       participants => \@ps,
       judges       => $judges,
       rounds       => \@rounds,

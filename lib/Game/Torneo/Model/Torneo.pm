@@ -39,7 +39,7 @@ sub _scores_to_plainarray ($as) {
 
 use namespace::clean;
 
-with 'Game::Torneo::Model::RoleSecretHolder';
+with 'Game::Torneo::Model::RoleMetaHolder';
 
 has _participants => (is => 'ro');
 
@@ -78,6 +78,14 @@ sub participant_for ($self, $id) {
    return $ps->{$id};
 }
 
+sub round_for ($self, $rid) {
+   # inefficient but correct
+   for my $round ($self->rounds->@*) {
+      return $round if $round->id eq $rid;
+   }
+   ouch 404, 'Round not found';
+}
+
 sub scores ($self) {
    my (%settled, %provisional);
    for my $round ($self->rounds->@*) {
@@ -106,6 +114,7 @@ sub as_hash ($self) {
    my %ps = map { $_ => $psh->{$_}->as_hash } keys $psh->%*;
    return {
       id           => $self->id,
+      metadata     => dclone($self->metadata),
       participants => \%ps,
       rounds       => [map { $_->as_hash } $self->rounds->@*],
       scores       => $scores,
@@ -124,6 +133,7 @@ sub from_hash ($class, $hash) {
    $args{rounds} =
      [map { Game::Torneo::Model::Round->from_hash($_); }
         $hash->{rounds}->@*];
+   $args{metadata} = dclone($hash->{metadata}) if exists $hash->{metadata};
    $args{secret} = $hash->{secret} if exists $hash->{secret};
    return $class->new(%args);
 } ## end sub create_from_hash
