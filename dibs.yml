@@ -1,0 +1,120 @@
+---
+name: torneo
+logger: ['Stderr', 'log_level', 'info']
+
+variables:
+   - &version_major           '0'
+   - &version_minor           '1'
+   - &version_patch           '1'
+   - &version ['join', '.', *version_major, *version_minor, *version_patch]
+   - &version_maj_min ['join', '.', *version_major, *version_minor]
+   - &target_image_name   'polettix/torneo'
+
+   - unexpanded:
+      tags: &version_tags ['*', 'latest', *version_maj_min, *version]
+
+   - &base     'alpine:3.6'
+   - &builder  'torneo-builder:1.0'
+   - &bundler  'torneo-bundler:1.0'
+   - &username 'urist'
+   - &appsrc   {path_src: '.'}
+   - &appcache {path_cache: 'perl-app'}
+   - &appdir   '/app'
+
+packs:
+   basic:
+      type: git
+      origin: https://github.com/polettix/dibspack-basic.git
+actions:
+   ensure-prereqs:
+      pack: basic
+      path: package/apk
+      user: root
+   ensure-build-prereqs:
+      extends: ensure-prereqs
+      args:
+         - build-base
+         - perl
+         - perl-dev
+         - openssl
+         - openssl-dev
+   ensure-bundle-prereqs:
+      extends: ensure-prereqs
+      args:
+         - perl
+         - openssl
+   add-normal-user:
+      pack: basic
+      path: wrapexec/suexec
+      args: ['-u', *username, '-h', *appdir]
+      user: root
+   base-layers:
+      - from: *base
+      - add-normal-user
+   buildish:
+      envile:
+         DIBS_PREREQS: build
+   builder:
+      extends: buildish
+      actions:
+         - base-layers
+         - ensure-build-prereqs
+         - tags: *builder
+   build-operations:
+      - name: compile modules
+        pack: basic
+        path: perl/build
+        user: *username
+      - name: copy needed artifacts in cache
+        pack: basic
+        path: install/with-dibsignore
+        args: ['--src', *appsrc,
+               '--dst', *appcache,
+               '--dibsignore', {path_pack: 'dibsignore'}]
+        user: root
+   build:
+      extends: buildish
+      actions:
+         - from: *builder
+         - ensure-build-prereqs
+         - build-operations
+   buildq:
+      - from: *builder
+      - build-operations
+   bundlish:
+      envile:
+         DIBS_PREREQS: bundle
+   bundler:
+      extends: bundlish
+      actions:
+         - base-layers
+         - ensure-bundle-prereqs
+         - tags: *bundler
+   bundle-operations:
+      - name: move artifacts in place
+        pack: basic
+        path: install/plain-copy
+        args: [*appcache, *appdir]
+        user: root
+      - name: setup Procfile
+        pack: basic
+        path: procfile/add
+        user: root
+        env:
+           PORT: 56789
+        commit:
+           entrypoint: ['/procfilerun']
+           cmd: []
+           user: *username
+           workdir: *appdir
+      - image_name: *target_image_name
+        tags: *version_tags
+   bundle:
+      extends: bundlish
+      actions:
+         - from: *bundler
+         - ensure-bundle-prereqs
+         - bundle-operations
+   bundleq:
+      - from: *bundler
+      - bundle-operations
