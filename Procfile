@@ -1,1 +1,1 @@
-web: perl ./script/torneo daemon --listen "http://*:$PORT"
+web: perl ./script/torneo-api daemon --listen "http://*:$PORT"
