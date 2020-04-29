@@ -18,15 +18,32 @@ sub startup ($self) {
    $self->config($config);
    $self->model(Game::Torneo::Model->new(backend => $config->{backend}));
 
-   if (defined (my $prefix = $config->{prefix})) {
+   my $prefix = $config->{prefix} // '';
+   if (length $prefix) {
       ($prefix = '/' . $prefix) =~ s{\A /+}{/}mxs;
       $prefix =~ s{/+ \z}{}mxs;
       $self->prefix($prefix);
    }
 
+#   $self->hook(
+#      before_dispatch => sub ($c) {
+#         my $url = $c->req->url;
+#         $self->log->debug("requested url is $url");
+#         $url->path($prefix . $url->path->to_string);
+#         $self->log->debug("now $url");
+#      }
+#   ) if length $prefix;
+
    $self->secrets($config->{secrets} // ['whate-ver']);
 
    my $r = $self->routes;
+   $r->get(
+      '/' => sub ($c) {
+         $c->stash('prefix' => $prefix);
+         $c->render(template => 'app');
+      }
+   );
+
    $r->get('/torneos')->to('torneo#list');
    $r->post('/torneos')->to('torneo#create');
 
@@ -57,6 +74,7 @@ sub startup ($self) {
       }
    );
 
+   $self->log->debug("Started");
 } ## end sub startup ($self)
 
 sub generate_url ($self, @path) {
