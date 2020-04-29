@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/foundation/6.3.1/css/foundation.min.css">
+   <link rel="stylesheet" href="<%= $prefix; %>/foundation.min.css">
    <link rel="stylesheet" href="<%= $prefix; %>/style.css">
   <meta charset="utf-8">
   <title>Torneo</title>
@@ -130,8 +130,8 @@
       
     </div>
 
-    <script src="https://unpkg.com/vue"></script>
-    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <script src="<%= $prefix; %>/vue.js"></script>
+    <script src="<%= $prefix; %>/axios.min.js"></script>
     <script src="<%= $prefix; %>/vue-app.js"></script>
   </body>
 </html>
