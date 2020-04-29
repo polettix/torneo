@@ -25,21 +25,17 @@ sub startup ($self) {
       $self->prefix($prefix);
    }
 
-#   $self->hook(
-#      before_dispatch => sub ($c) {
-#         my $url = $c->req->url;
-#         $self->log->debug("requested url is $url");
-#         $url->path($prefix . $url->path->to_string);
-#         $self->log->debug("now $url");
-#      }
-#   ) if length $prefix;
+   $self->hook(
+      before_dispatch => sub ($c) {
+         $c->stash('prefix' => $prefix);
+      }
+   ) if length $prefix;
 
    $self->secrets($config->{secrets} // ['whate-ver']);
 
    my $r = $self->routes;
    $r->get(
       '/' => sub ($c) {
-         $c->stash('prefix' => $prefix);
          $c->render(template => 'app');
       }
    );

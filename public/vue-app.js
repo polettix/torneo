@@ -1,6 +1,3 @@
-// const url = "http://localhost:53000/torneos/910-6efb436eb2a8887e0e6106ec444ebeea";
-const url = "http://localhost:53000";
-
 function _page_url_for_tid (tid) {
    var myurl = new URL(window.location.href);
    myurl.searchParams.set('tid', tid);
@@ -124,10 +121,7 @@ const vm = new Vue({
          })
       },
       save_scores: function (match) {
-         var myurl = new URL(window.location.href);
-         var burl = myurl.pathname.replace(/\/index\.html/, "");
-         var url = burl + match.url.scores;
-         axios.put(url, match.scores)
+         axios.put(match.url.scores, match.scores)
             .then(res => { this.load_torneo(); });
       },
       has_tid: function () {
