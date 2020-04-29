@@ -7,21 +7,24 @@ no warnings qw< experimental::postderef experimental::signatures >;
 use Ouch ':trytiny_var';
 use Try::Catch;
 use Scalar::Util 'blessed';
+use Game::Torneo::Model;
 
-has model => sub {
-   require Game::Torneo::Model;
-   return Game::Torneo::Model->new(
-      backend => {
-         class => 'Game::Torneo::Model::BackEnd::JsonFile',
-         repo  => 'tmp',
-      }
-   );
-};
-
-has prefix => '';
+has 'config';
+has 'model';
+has 'prefix' => '';
 
 sub startup ($self) {
-   $self->secrets([$ENV{GATOR_SECRET} // 'whate-ver']);
+   my $config = $Game::Torneo::API::config // {};
+   $self->config($config);
+   $self->model(Game::Torneo::Model->new(backend => $config->{backend}));
+
+   if (defined (my $prefix = $config->{prefix})) {
+      ($prefix = '/' . $prefix) =~ s{\A /+}{/}mxs;
+      $prefix =~ s{/+ \z}{}mxs;
+      $self->prefix($prefix);
+   }
+
+   $self->secrets($config->{secrets} // ['whate-ver']);
 
    my $r = $self->routes;
    $r->get('/torneos')->to('torneo#list');

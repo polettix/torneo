@@ -1,9 +1,42 @@
 #!/usr/bin/env perl
 use 5.024;
 use warnings;
+use experimental qw< postderef signatures >;
+no warnings qw< experimental::postderef experimental::signatures >;
 use Path::Tiny 'path';
 use lib path(__FILE__)->parent->parent->child('lib')->stringify;
 use Mojolicious::Commands;
- 
+use Mojo::JSON qw< decode_json encode_json >;
+
 # Start command line interface for application
-Mojolicious::Commands->start_app('Game::Torneo::API');
+{
+   my $config = generate_config(
+      backend => {
+         class => 'Game::Torneo::Model::BackEnd::JsonFile',
+         repo => 'db',
+      },
+      moniker => 'torneo',
+      prefix => '',
+      secrets => ['whate-ver'],
+      uuid_prefix => 'what',
+      uuid_suffix => 'ever',
+   );
+   local $Game::Torneo::API::config = $config;
+   local $Game::Torneo::Model::Util::prefix = $config->{uuid_prefix};
+   local $Game::Torneo::Model::Util::suffix = $config->{uuid_suffix};
+   Mojolicious::Commands->start_app('Game::Torneo::API');
+}
+
+sub generate_config (%defaults) {
+   my $config = -r ($ENV{GATOR_CONFIG_FILE} // '')
+      ? decode_json(path($ENV{GATOR_CONFIG_FILE})->slurp_utf8)
+      : {};
+   while (my ($ekey, $value) = each %ENV) {
+      my ($key) = $ekey =~ m{\A GATOR_ (\w+) \z}mxs or next;
+      $config->{lc $key} = $value;
+   }
+   $config->%* = (%defaults, $config->%*);
+   $config->{secrets} = [split m{,}mxs, $config->{secrets}]
+     unless ref $config->{secrets};
+   return $config;
+}

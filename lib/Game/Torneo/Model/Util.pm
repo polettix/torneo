@@ -39,9 +39,9 @@ sub check_hashref_of ($x, $class) {
    return '';
 }
 
-sub uuid ($x = {}) {
-   my $prefix = $ENV{GATOR_SECRET_PREFIX} // 'what';
-   my $suffix = $ENV{GATOR_SECRET_SUFFIX} // 'ever';
+sub uuid () {
+   my $prefix = $Game::Torneo::Model::Util::prefix // 'what';
+   my $suffix = $Game::Torneo::Model::Util::suffix // 'what';
    sleep(1e-3);
    return md5_hex(join '-', $prefix, time(), rand(1e6), $suffix)
 }

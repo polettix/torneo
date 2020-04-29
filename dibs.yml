@@ -8,7 +8,7 @@ variables:
    - &version_patch           '1'
    - &version ['join', '.', *version_major, *version_minor, *version_patch]
    - &version_maj_min ['join', '.', *version_major, *version_minor]
-   - &target_image_name   'polettix/torneo'
+   - &target_image_name   'polettix.it:5000/polettix/torneo'
 
    - unexpanded:
       tags: &version_tags ['*', 'latest', *version_maj_min, *version]
@@ -26,6 +26,9 @@ packs:
       type: git
       origin: https://github.com/polettix/dibspack-basic.git
 actions:
+   default:
+      - buildq
+      - bundleq
    ensure-prereqs:
       pack: basic
       path: package/apk
