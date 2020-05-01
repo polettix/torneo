@@ -24,18 +24,28 @@ use Mojo::JSON qw< decode_json encode_json >;
    local $Game::Torneo::API::config = $config;
    local $Game::Torneo::Model::Util::prefix = $config->{uuid_prefix};
    local $Game::Torneo::Model::Util::suffix = $config->{uuid_suffix};
+   use Data::Dumper;
+   warn Dumper $config;
    Mojolicious::Commands->start_app('Game::Torneo::API');
 }
 
 sub generate_config (%defaults) {
-   my $config = -r ($ENV{GATOR_CONFIG_FILE} // '')
-      ? decode_json(path($ENV{GATOR_CONFIG_FILE})->slurp_utf8)
+   my $config = -r ($ENV{TORNEO_CONFIG_FILE} // '')
+      ? decode_json(path($ENV{TORNEO_CONFIG_FILE})->slurp_utf8)
       : {};
    while (my ($ekey, $value) = each %ENV) {
-      my ($key) = $ekey =~ m{\A GATOR_ (\w+) \z}mxs or next;
+      my ($key) = $ekey =~ m{\A TORNEO_ (\w+) \z}mxs or next;
       $config->{lc $key} = $value;
    }
-   $config->%* = (%defaults, $config->%*);
+   my $dburl = $config->{database_url} // $ENV{DATABASE_URL};
+   if (!exists($config->{backend}) && defined $dburl) {
+      $dburl =~ s{^postgres:}{postgresql:}mxs;
+      $config->{backend} = {
+         class => 'Game::Torneo::Model::BackEnd::MojoDb',
+         dsn => $dburl,
+      };
+   }
+   $config->{$_} //= $defaults{$_} for keys %defaults;
    $config->{secrets} = [split m{,}mxs, $config->{secrets}]
      unless ref $config->{secrets};
    return $config;

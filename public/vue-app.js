@@ -4,10 +4,13 @@ function _page_url_for_tid (tid) {
    return myurl;
 }
 
-function _data_url_for_tid (tid) {
+function _data_url_base() {
    var myurl = new URL(window.location.href);
-   var url = myurl.pathname.replace(/\/index\.html/, "");
-   return url + '/torneos/' + tid;
+   return myurl.pathname.replace(/\/[^/]*$/, "") + '/torneos';
+}
+
+function _data_url_for_tid (tid) {
+   return _data_url_base() + '/' + tid;
 }
 
 function _load_torneo (instance) {
@@ -75,9 +78,7 @@ const vm = new Vue({
    },
    methods: {
       create_torneo: function () {
-         var myurl = new URL(window.location.href);
-         var burl = myurl.pathname.replace(/\/index\.html/, "");
-         var url = burl + '/torneos';
+         var url = _data_url_base();
          axios.post(url, this.new_torneo)
             .then(response => {
                window.location.href = _page_url_for_tid(response.data.id);

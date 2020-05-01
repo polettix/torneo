@@ -70,6 +70,8 @@ around BUILDARGS => sub ($orig, $class, @args) {
    return $class->$orig($args);
 };
 
+sub participants ($self) { return keys $self->_participants->%* }
+
 sub participants_map ($self) { return $self->_participants->%* }
 
 sub participant_for ($self, $id) {
@@ -135,6 +137,7 @@ sub from_hash ($class, $hash) {
         $hash->{rounds}->@*];
    $args{metadata} = dclone($hash->{metadata}) if exists $hash->{metadata};
    $args{secret} = $hash->{secret} if exists $hash->{secret};
+   $args{id} = $hash->{id} if exists $hash->{id};
    return $class->new(%args);
 } ## end sub create_from_hash
 

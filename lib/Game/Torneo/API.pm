@@ -29,7 +29,7 @@ sub startup ($self) {
       before_dispatch => sub ($c) {
          $c->stash('prefix' => $prefix);
       }
-   ) if length $prefix;
+   );
 
    $self->secrets($config->{secrets} // ['whate-ver']);
 

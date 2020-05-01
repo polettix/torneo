@@ -29,6 +29,8 @@ has score_from => (
    default => sub { return {} },
 );
 
+has scores_were_touched => (is => 'rw', default => 0);
+
 sub has_judges ($self) { return scalar($self->judges->@*) > 0 }
 
 sub is_judge ($self, $judge) {
@@ -51,6 +53,7 @@ sub record_scores ($self, $judge, $scores) {
    my $sf = $self->score_from;
    $sf->%* = () unless $self->has_judges;
    $sf->{$judge} = \%saved_score_for;
+   $self->scores_were_touched(1);
    return $self;
 } ## end sub record_scores
 
@@ -65,6 +68,7 @@ sub clear_scores ($self, $judge) {
    else {
       $sf->%* = ();
    }
+   $self->scores_were_touched(1);
    return $self;
 }
 

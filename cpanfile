@@ -8,6 +8,9 @@ requires 'namespace::clean';
 requires 'strictures';
 requires 'Math::GF';
 requires 'Path::Tiny';
+requires 'DBI';
+requires 'Mojo::SQLite';
+requires 'Mojo::Pg';
 
 on test => sub {
    requires 'Test::More';
